@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    // All collections are open for development
+    match /{document=**} {
+      allow read, write: if true;
+    }
+
+    // Explicit segments for clarity
+    match /posts/{postId} {
+      allow read, write: if true;
+    }
+
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
+  }
+}

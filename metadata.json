@@ -1,0 +1,6 @@
+{
+  "name": "CineFlow AI - Movie Blog Automation",
+  "description": "Automated AI-powered movie blogging system that fetches trending movies from TMDb, generates SEO-optimized articles with Gemini, and manages a publishing database.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "Post": {
+      "title": "Movie Post",
+      "description": "A generated movie blog post",
+      "type": "object",
+      "properties": {
+        "imdbId": { "type": "string" },
+        "movieTitle": { "type": "string" },
+        "seoTitle": { "type": "string" },
+        "metaDescription": { "type": "string" },
+        "slug": { "type": "string" },
+        "tags": { "type": "array" },
+        "articleHtml": { "type": "string" },
+        "posterPath": { "type": "string" },
+        "releaseDate": { "type": "string" },
+        "rating": { "type": "number" },
+        "genres": { "type": "string" },
+        "cast": { "type": "string" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["published", "draft", "failed"] }
+      },
+      "required": ["imdbId", "movieTitle", "articleHtml", "publishedAt"]
+    },
+    "AppSetting": {
+      "title": "App Setting",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Collection of generated movie blog posts"
+    },
+    "/settings/{settingId}": {
+      "schema": "AppSetting",
+      "description": "Application settings"
+    }
+  }
+}
