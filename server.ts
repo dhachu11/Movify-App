@@ -26,15 +26,29 @@ try {
   const configPath = path.join(process.cwd(), "firebase-applet-config.json");
   firebaseConfig = JSON.parse(readFileSync(configPath, "utf-8"));
 } catch (e) {
-  console.error("Could not read firebase-applet-config.json", e);
+  // If local file is missing (e.g. in Vercel), fallback to env vars
+  firebaseConfig = {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    apiKey: process.env.FIREBASE_API_KEY,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.FIREBASE_APP_ID,
+    firestoreDatabaseId: process.env.FIREBASE_DATABASE_ID || "(default)"
+  };
 }
 
 // Google OAuth Setup
+const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 
+                     (process.env.APP_URL ? `${process.env.APP_URL}/auth/callback` : "http://localhost:3000/auth/callback");
+
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.APP_URL ? `${process.env.APP_URL}/auth/callback` : "http://localhost:3000/auth/callback"
+  REDIRECT_URI
 );
+
+console.log(`[OAuth] Redirect URI initialized as: ${REDIRECT_URI}`);
 
 // Global DB State
 let db: any = null;
@@ -93,6 +107,10 @@ async function runAutoAutomation() {
 }
 
 function setupScheduler() {
+  if (process.env.VERCEL) {
+    console.log("[Scheduler] Running on Vercel, skipping background interval.");
+    return;
+  }
   if (schedulerInterval) clearInterval(schedulerInterval);
   // Run check every 10 minutes
   schedulerInterval = setInterval(runAutoAutomation, 10 * 60 * 1000);
@@ -106,7 +124,10 @@ async function initFirebase() {
   const databaseId = firebaseConfig.firestoreDatabaseId;
   strategyErrors = [];
 
-  console.log(`[Firebase] Initializing. Project: ${projectId}, DB: ${databaseId}`);
+  if (!projectId) {
+    console.warn("[Firebase] No Project ID provided. Database features will be limited.");
+    return;
+  }
 
   // Strategy A: Admin SDK
   async function tryAdminConnect(options: admin.AppOptions, dbId: string | undefined, name: string) {
@@ -199,23 +220,25 @@ async function publishToBlogger(title: string, content: string, labels: string[]
 
 // Abstraction Helpers
 async function getCollection(path: string, options: { orderBy?: string, limit?: number } = {}) {
+  await initFirebase();
   if (!db) throw new Error("Database not initialized");
   if (isClientDb) {
     let q = clientCollection(db, path) as any;
     if (options.orderBy) q = clientQuery(q, clientOrderBy(options.orderBy, "desc"));
     if (options.limit) q = clientQuery(q, clientLimit(options.limit));
     const snap = await clientGetDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return snap.docs.map(d => ({ id: d.id, ...(d.data() as object) }));
   } else {
     let q = db.collection(path);
     if (options.orderBy) q = q.orderBy(options.orderBy, "desc");
     if (options.limit) q = q.limit(options.limit);
     const snap = await q.get();
-    return snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    return snap.docs.map((d: any) => ({ id: d.id, ...(d.data() as object) }));
   }
 }
 
 async function getDocument(collectionPath: string, docId: string) {
+  await initFirebase();
   if (!db) throw new Error("Database not initialized");
   if (isClientDb) {
     const snap = await clientGetDoc(clientDoc(db, collectionPath, docId));
@@ -227,6 +250,7 @@ async function getDocument(collectionPath: string, docId: string) {
 }
 
 async function setDocument(collectionPath: string, docId: string, data: any) {
+  await initFirebase();
   if (!db) throw new Error("Database not initialized");
   if (isClientDb) {
     await clientSetDoc(clientDoc(db, collectionPath, docId), data);
@@ -236,6 +260,7 @@ async function setDocument(collectionPath: string, docId: string, data: any) {
 }
 
 async function addDocument(collectionPath: string, data: any) {
+  await initFirebase();
   if (!db) throw new Error("Database not initialized");
   if (isClientDb) {
     const docRef = await clientAddDoc(clientCollection(db, collectionPath), data);
@@ -246,9 +271,12 @@ async function addDocument(collectionPath: string, data: any) {
   }
 }
 
-const app = express();
+export const app = express();
 app.use(express.json());
 const PORT = 3000;
+
+// Force init on startup
+initFirebase().then(() => setupScheduler());
 
 // Gemini Initialization
 const ai = new GoogleGenAI({
@@ -417,7 +445,7 @@ OUTPUT FORMAT: { "seo_title": "...", "meta_description": "...", "slug": "...", "
 
   try {
     const ads = await getDocument("settings", "ad_config");
-    const code = ads?.adCode || ads?.monetagCode;
+    const code = ads?.adCode;
     if (code) {
       finalHtml = `${code}\n${finalHtml}\n${code}`;
     }
@@ -520,4 +548,8 @@ async function startServer() {
   }
   app.listen(PORT, "0.0.0.0", () => console.log(`Server running on http://localhost:${PORT}`));
 }
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;

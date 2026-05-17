@@ -57,7 +57,6 @@ export default function App() {
       const data = await res.json();
       if (data.omdb?.apiKey) setOmdbKey(data.omdb.apiKey);
       if (data.ads?.adCode) setAdCode(data.ads.adCode);
-      else if (data.ads?.monetagCode) setAdCode(data.ads.monetagCode);
       setIsBloggerConnected(data.blog?.isConnected || false);
       setConnectedBlogName(data.blog?.blogName || '');
       setIsAutoPostEnabled(data.blog?.isAutoPostEnabled || false);
@@ -593,6 +592,65 @@ export default function App() {
                             <p className="text-[10px] text-black/40 italic leading-relaxed">
                               This code will be injected at both the beginning and end of each blog post automatically. Use Adsterra Social Bar or Popunder tags for best results.
                             </p>
+                          </div>
+
+                          <div className="pt-8 border-t border-black/10">
+                            <h4 className="text-xs font-black uppercase tracking-widest mb-6">Deployment & Blogger Help</h4>
+                            <div className="bg-black/5 p-6 space-y-6 rounded-sm border border-black/5">
+                              <div className="space-y-4">
+                                <h5 className="text-[10px] font-black uppercase tracking-widest text-[#FF6321]">1. Google Auth Troubleshooting</h5>
+                                <div className="p-4 bg-white border border-black/5 rounded-sm space-y-3">
+                                  <p className="text-[10px] font-bold">Access Blocked / 403 Access Denied?</p>
+                                  <p className="text-[10px] leading-relaxed opacity-70">
+                                    Your Google Cloud Project is likely in <strong>"Testing"</strong> mode. You must:
+                                    <br/>â€¢ Go to <strong>Google Cloud Console</strong> &rarr; <strong>APIs & Services</strong> &rarr; <strong>OAuth Consent Screen</strong>.
+                                    <br/>â€¢ Under <strong>"Test users"</strong>, click <strong>"+ ADD USERS"</strong> and add your email: <strong>{localStorage.getItem('userEmail') || 'your-email@gmail.com'}</strong>.
+                                    <br/>â€¢ Or click <strong>"PUBLISH APP"</strong> to move to production.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <h5 className="text-[10px] font-black uppercase tracking-widest text-[#FF6321]">2. Vercel / GitHub Environment Variables</h5>
+                                <div className="p-4 bg-white border border-black/5 rounded-sm space-y-4">
+                                  <p className="text-[10px] leading-relaxed opacity-70">
+                                    Add these <strong>Environmental Variables</strong> in your Vercel/Hosting dashboard:
+                                  </p>
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {[
+                                      'GOOGLE_CLIENT_ID',
+                                      'GOOGLE_CLIENT_SECRET',
+                                      'GEMINI_API_KEY',
+                                      'OMDB_API_KEY',
+                                      'APP_URL (e.g. https://your-site.vercel.app)',
+                                      '--- Firebase Vars (From firebase-applet-config.json) ---',
+                                      'FIREBASE_PROJECT_ID',
+                                      'FIREBASE_API_KEY',
+                                      'FIREBASE_AUTH_DOMAIN',
+                                      'FIREBASE_APP_ID'
+                                    ].map(key => (
+                                      <div key={key} className="flex justify-between items-center bg-black/[0.02] px-2 py-1.5 border border-black/5">
+                                        <code className="text-[9px] font-mono">{key}</code>
+                                        <span className="text-[8px] font-black opacity-20 uppercase">Required</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-1">Authorized Redirect URI (for Google Console)</p>
+                                <div className="flex items-center gap-2">
+                                  <code className="bg-white px-3 py-1.5 border border-black/10 text-[10px] flex-1 font-mono">{window.location.origin}/auth/callback</code>
+                                  <button 
+                                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/auth/callback`)}
+                                    className="text-[9px] font-black uppercase hover:text-[#FF6321]"
+                                  >
+                                    Copy
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
 
                           <button 
